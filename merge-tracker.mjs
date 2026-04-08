@@ -45,11 +45,16 @@ function validateStatus(status) {
     if (valid.toLowerCase() === lower) return valid;
   }
 
-  // Aliases
+  // Aliases (including Spanish legacy)
   const aliases = {
-    'enviada': 'Aplicado', 'aplicada': 'Aplicado', 'applied': 'Aplicado', 'sent': 'Aplicado',
-    'cerrada': 'Descartado', 'descartada': 'Descartado', 'cancelada': 'Descartado',
-    'rechazada': 'Rechazado',
+    'sent': 'Applied',
+    'enviada': 'Applied', 'aplicada': 'Applied', 'aplicado': 'Applied',
+    'cerrada': 'Discarded', 'descartada': 'Discarded', 'cancelada': 'Discarded', 'descartado': 'Discarded',
+    'rechazada': 'Rejected', 'rechazado': 'Rejected',
+    'evaluada': 'Evaluated',
+    'respondido': 'Responded',
+    'entrevista': 'Interview',
+    'oferta': 'Offer',
     'no aplicar': 'SKIP', 'no_aplicar': 'SKIP', 'skip': 'SKIP', 'monitor': 'SKIP',
     'condicional': 'Evaluated', 'hold': 'Evaluated', 'evaluar': 'Evaluated', 'verificar': 'Evaluated',
     'geo blocker': 'SKIP',
@@ -57,11 +62,11 @@ function validateStatus(status) {
 
   if (aliases[lower]) return aliases[lower];
 
-  // DUPLICADO/Repost → Descartado
-  if (/^(duplicado|dup|repost)/i.test(lower)) return 'Descartado';
+  // DUPLICADO/DUP/Repost → Discarded
+  if (/^(duplicado|dup|repost)/i.test(lower)) return 'Discarded';
 
-  console.warn(`⚠️  Non-canonical status "${status}" → defaulting to "Evaluada"`);
-  return 'Evaluada';
+  console.warn(`Non-canonical status "${status}" -> defaulting to "Evaluated"`);
+  return 'Evaluated';
 }
 
 function normalizeCompany(name) {

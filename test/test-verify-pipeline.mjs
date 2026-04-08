@@ -103,7 +103,7 @@ test('valid English statuses pass', () => {
   assert(exitCode === 0, `Expected exit 0, got ${exitCode}`);
 });
 
-test('valid Spanish statuses pass', () => {
+test('valid Spanish legacy statuses pass', () => {
   writeReport('001-acme-2026-01-01.md');
   writeApps(`# Applications Tracker
 

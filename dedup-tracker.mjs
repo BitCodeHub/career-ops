@@ -22,11 +22,19 @@ const APPS_FILE = existsSync(join(CAREER_OPS, 'data/applications.md'))
 const DRY_RUN = process.argv.includes('--dry-run');
 
 // Status advancement order (higher = more advanced in pipeline)
-// Aplicado > Rechazado because active application > terminal state
 const STATUS_RANK = {
+  'skip': 0,
+  'discarded': 0,
+  'rejected': 1,  // Terminal — below active states
+  'evaluated': 2,
+  'applied': 3,
+  'responded': 4,
+  'interview': 5,
+  'offer': 6,
+  // Spanish legacy aliases (map to same ranks)
   'no aplicar': 0,
   'descartado': 0,
-  'rechazado': 1,  // Terminal — below active states
+  'rechazado': 1,
   'evaluada': 2,
   'aplicado': 3,
   'respondido': 4,

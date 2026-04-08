@@ -51,6 +51,6 @@ states:
 
   - id: skip
     label: SKIP
-    aliases: [no_aplicar, no aplicar, skip, monitor]
+    aliases: [no_aplicar, no aplicar, monitor]
     description: Doesn't fit, don't apply
     dashboard_group: skip

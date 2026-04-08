@@ -74,7 +74,7 @@ test('no applications.md exits cleanly', () => {
   assert(exitCode === 0, `Expected exit 0, got ${exitCode}`);
 });
 
-test('normalizes DUPLICADO to Descartado', () => {
+test('normalizes DUPLICADO to Discarded', () => {
   writeApps(`# Tracker
 
 | # | Date | Company | Role | Score | DUPLICADO #3 | PDF | Report | Notes |
@@ -83,10 +83,10 @@ test('normalizes DUPLICADO to Descartado', () => {
 `);
   runNormalize();
   const content = readApps();
-  assert(content.includes('Descartado'), 'Expected Descartado');
+  assert(content.includes('Discarded'), 'Expected Discarded');
 });
 
-test('normalizes cerrada to Descartado', () => {
+test('normalizes cerrada to Discarded', () => {
   writeApps(`# Tracker
 
 | # | Date | Company | Role | Score | Status | PDF | Report | Notes |
@@ -95,10 +95,10 @@ test('normalizes cerrada to Descartado', () => {
 `);
   runNormalize();
   const content = readApps();
-  assert(content.includes('Descartado'), 'Expected Descartado');
+  assert(content.includes('Discarded'), 'Expected Discarded');
 });
 
-test('normalizes rechazada to Rechazado', () => {
+test('normalizes rechazada to Rejected', () => {
   writeApps(`# Tracker
 
 | # | Date | Company | Role | Score | Status | PDF | Report | Notes |
@@ -107,7 +107,7 @@ test('normalizes rechazada to Rechazado', () => {
 `);
   runNormalize();
   const content = readApps();
-  assert(content.includes('Rechazado'), 'Expected Rechazado');
+  assert(content.includes('Rejected'), 'Expected Rejected');
 });
 
 test('strips markdown bold from status', () => {
@@ -115,12 +115,12 @@ test('strips markdown bold from status', () => {
 
 | # | Date | Company | Role | Score | Status | PDF | Report | Notes |
 |---|------|---------|------|-------|--------|-----|--------|-------|
-| 1 | 2026-01-01 | Acme | AI Eng | 3.0/5 | **Evaluada** | N | - | |
+| 1 | 2026-01-01 | Acme | AI Eng | 3.0/5 | **Evaluated** | N | - | |
 `);
   runNormalize();
   const content = readApps();
-  assert(!content.includes('**Evaluada**'), 'Bold should be stripped');
-  assert(content.includes('Evaluada'), 'Expected Evaluada');
+  assert(!content.includes('**Evaluated**'), 'Bold should be stripped');
+  assert(content.includes('Evaluated'), 'Expected Evaluated');
 });
 
 test('strips date from status field', () => {
@@ -128,11 +128,11 @@ test('strips date from status field', () => {
 
 | # | Date | Company | Role | Score | Status | PDF | Report | Notes |
 |---|------|---------|------|-------|--------|-----|--------|-------|
-| 1 | 2026-01-01 | Acme | AI Eng | 3.0/5 | Aplicado 2026-01-05 | N | - | |
+| 1 | 2026-01-01 | Acme | AI Eng | 3.0/5 | Applied 2026-01-05 | N | - | |
 `);
   runNormalize();
   const content = readApps();
-  assert(content.includes('Aplicado'), 'Expected Aplicado');
+  assert(content.includes('Applied'), 'Expected Applied');
 });
 
 test('dry-run does not modify file', () => {

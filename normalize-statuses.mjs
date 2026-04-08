@@ -3,12 +3,12 @@
  * normalize-statuses.mjs — Clean non-canonical states in applications.md
  *
  * Maps all non-canonical statuses to canonical ones per states.yml:
- *   Evaluada, Aplicado, Respondido, Entrevista, Oferta, Rechazado, Descartado, NO APLICAR
+ *   Evaluated, Applied, Responded, Interview, Offer, Rejected, Discarded, SKIP
  *
  * Also strips markdown bold (**) and dates from the status field,
- * moving DUPLICADO info to the notes column.
+ * moving DUPLICADO/DUP info to the notes column.
  *
- * Run: node career-ops/normalize-statuses.mjs [--dry-run]
+ * Run: node normalize-statuses.mjs [--dry-run] [--cwd=<path>]
  */
 
 import { readFileSync, writeFileSync, copyFileSync, existsSync } from 'fs';
@@ -29,66 +29,50 @@ function normalizeStatus(raw) {
   let s = raw.replace(/\*\*/g, '').trim();
   const lower = s.toLowerCase();
 
-  // DUPLICADO variants → Descartado
-  if (/^duplicado/i.test(s) || /^dup\b/i.test(s)) {
-    return { status: 'Descartado', moveToNotes: raw.trim() };
+  // DUPLICADO/DUP variants → Discarded
+  if (/^(duplicado|dup)\b/i.test(s)) {
+    return { status: 'Discarded', moveToNotes: raw.trim() };
   }
 
-  // CERRADA → Descartado
-  if (/^cerrada$/i.test(s)) return { status: 'Descartado' };
+  // Repost → Discarded
+  if (/^repost/i.test(s)) return { status: 'Discarded', moveToNotes: raw.trim() };
 
-  // Cancelada (possibly with date) → Descartado
-  if (/^cancelada/i.test(s)) return { status: 'Descartado' };
+  // "—" (em dash, no status) → Discarded
+  if (s === '—' || s === '-' || s === '') return { status: 'Discarded' };
 
-  // Descartada → Descartado
-  if (/^descartada$/i.test(s)) return { status: 'Descartado' };
-
-  // Rechazada → Rechazado
-  if (/^rechazada$/i.test(s)) return { status: 'Rechazado' };
-
-  // Rechazado with date → Rechazado (strip date)
-  if (/^rechazado\s+\d{4}/i.test(s)) return { status: 'Rechazado' };
-
-  // Aplicado with date → Aplicado (strip date)
-  if (/^aplicado\s+\d{4}/i.test(s)) return { status: 'Aplicado' };
-
-  // CONDICIONAL → Evaluada
-  if (/^condicional$/i.test(s)) return { status: 'Evaluada' };
-
-  // HOLD → Evaluada
-  if (/^hold$/i.test(s)) return { status: 'Evaluada' };
-
-  // MONITOR → Evaluada
-  if (/^monitor$/i.test(s)) return { status: 'Evaluada' };
-
-  // EVALUAR → Evaluada
-  if (/^evaluar$/i.test(s)) return { status: 'Evaluada' };
-
-  // Verificar → Evaluada
-  if (/^verificar$/i.test(s)) return { status: 'Evaluada' };
-
-  // GEO BLOCKER → NO APLICAR
-  if (/geo.?blocker/i.test(s)) return { status: 'NO APLICAR' };
-
-  // Repost #NNN → Descartado
-  if (/^repost/i.test(s)) return { status: 'Descartado', moveToNotes: raw.trim() };
-
-  // "—" (em dash, no status) → Descartado
-  if (s === '—' || s === '-' || s === '') return { status: 'Descartado' };
-
-  // Already canonical — just fix casing/bold
+  // Already canonical (English) — just fix casing/bold
   const canonical = [
-    'Evaluada', 'Aplicado', 'Respondido', 'Entrevista',
-    'Oferta', 'Rechazado', 'Descartado', 'NO APLICAR',
+    'Evaluated', 'Applied', 'Responded', 'Interview',
+    'Offer', 'Rejected', 'Discarded', 'SKIP',
   ];
   for (const c of canonical) {
     if (lower === c.toLowerCase()) return { status: c };
   }
 
-  // Aliases from states.yml
-  if (['enviada', 'aplicada', 'applied', 'sent'].includes(lower)) return { status: 'Aplicado' };
-  if (['cerrada', 'descartada'].includes(lower)) return { status: 'Descartado' };
-  if (['no aplicar', 'no_aplicar', 'skip'].includes(lower)) return { status: 'NO APLICAR' };
+  // Strip trailing dates from status
+  const statusOnly = lower.replace(/\s+\d{4}-\d{2}-\d{2}.*$/, '').trim();
+
+  // Map all known aliases (including Spanish legacy) to English canonical
+  const aliasMap = {
+    // Spanish → English
+    'evaluada': 'Evaluated',
+    'aplicado': 'Applied', 'aplicada': 'Applied', 'enviada': 'Applied',
+    'respondido': 'Responded',
+    'entrevista': 'Interview',
+    'oferta': 'Offer',
+    'rechazado': 'Rejected', 'rechazada': 'Rejected',
+    'descartado': 'Discarded', 'descartada': 'Discarded',
+    'cerrada': 'Discarded', 'cancelada': 'Discarded',
+    'no aplicar': 'SKIP', 'no_aplicar': 'SKIP',
+    // English aliases
+    'sent': 'Applied',
+    'skip': 'SKIP', 'monitor': 'SKIP',
+    'condicional': 'Evaluated', 'hold': 'Evaluated',
+    'evaluar': 'Evaluated', 'verificar': 'Evaluated',
+    'geo blocker': 'SKIP', 'geo_blocker': 'SKIP',
+  };
+
+  if (aliasMap[statusOnly]) return { status: aliasMap[statusOnly] };
 
   // Unknown — flag it
   return { status: null, unknown: true };
@@ -110,7 +94,6 @@ for (let i = 0; i < lines.length; i++) {
   if (!line.startsWith('|')) continue;
 
   const parts = line.split('|').map(s => s.trim());
-  // Format: ['', '#', 'fecha', 'empresa', 'rol', 'score', 'STATUS', 'pdf', 'report', 'notas', '']
   if (parts.length < 9) continue;
   if (parts[1] === '#' || parts[1] === '---' || parts[1] === '') continue;
 
@@ -151,25 +134,25 @@ for (let i = 0; i < lines.length; i++) {
   lines[i] = newLine;
   changes++;
 
-  console.log(`#${num}: "${oldStatus}" → "${result.status}"`);
+  console.log(`#${num}: "${oldStatus}" -> "${result.status}"`);
 }
 
 if (unknowns.length > 0) {
-  console.log(`\n⚠️  ${unknowns.length} unknown statuses:`);
+  console.log(`\n${unknowns.length} unknown statuses:`);
   for (const u of unknowns) {
     console.log(`  #${u.num} (line ${u.line}): "${u.rawStatus}"`);
   }
 }
 
-console.log(`\n📊 ${changes} statuses normalized`);
+console.log(`\n${changes} statuses normalized`);
 
 if (!DRY_RUN && changes > 0) {
   // Backup first
   copyFileSync(APPS_FILE, APPS_FILE + '.bak');
   writeFileSync(APPS_FILE, lines.join('\n'));
-  console.log('✅ Written to applications.md (backup: applications.md.bak)');
+  console.log('Written to applications.md (backup: applications.md.bak)');
 } else if (DRY_RUN) {
   console.log('(dry-run — no changes written)');
 } else {
-  console.log('✅ No changes needed');
+  console.log('No changes needed');
 }
