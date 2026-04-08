@@ -14,7 +14,9 @@
 import { readFileSync, writeFileSync, copyFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
-const CAREER_OPS = new URL('.', import.meta.url).pathname;
+// Support --cwd=<path> for running against a different directory (e.g., tests)
+const cwdFlag = process.argv.find(a => a.startsWith('--cwd='));
+const CAREER_OPS = cwdFlag ? cwdFlag.split('=')[1] : new URL('.', import.meta.url).pathname;
 // Support both layouts: data/applications.md (boilerplate) and applications.md (original)
 const APPS_FILE = existsSync(join(CAREER_OPS, 'data/applications.md'))
   ? join(CAREER_OPS, 'data/applications.md')

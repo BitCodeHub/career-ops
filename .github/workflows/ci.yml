@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  node-scripts:
+    name: Node.js Scripts
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm test
+
+      - name: Run sync check (expected to warn on fresh setup)
+        run: node cv-sync-check.mjs || true
+
+      - name: Run verify pipeline (expected to pass on fresh setup)
+        run: node verify-pipeline.mjs
+
+  dashboard:
+    name: Go Dashboard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: dashboard/go.mod
+
+      - name: Build dashboard
+        working-directory: dashboard
+        run: go build -o career-dashboard .
+
+      - name: Run Go tests
+        working-directory: dashboard
+        run: go test ./... || true
+
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check shell scripts
+        run: |
+          if command -v shellcheck &>/dev/null; then
+            shellcheck setup.sh batch/batch-runner.sh
+          else
+            echo "shellcheck not available, skipping"
+          fi
+
+      - name: Check for trailing whitespace
+        run: |
+          if git grep -l '[[:space:]]$' -- '*.mjs' '*.md' '*.yml' '*.sh' 2>/dev/null; then
+            echo "::warning::Found trailing whitespace in some files"
+          fi

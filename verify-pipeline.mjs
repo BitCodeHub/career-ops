@@ -17,7 +17,9 @@
 import { readFileSync, readdirSync, existsSync } from 'fs';
 import { join } from 'path';
 
-const CAREER_OPS = new URL('.', import.meta.url).pathname;
+// Support --cwd=<path> for running against a different directory (e.g., tests)
+const cwdFlag = process.argv.find(a => a.startsWith('--cwd='));
+const CAREER_OPS = cwdFlag ? cwdFlag.split('=')[1] : new URL('.', import.meta.url).pathname;
 // Support both layouts: data/applications.md (boilerplate) and applications.md (original)
 const APPS_FILE = existsSync(join(CAREER_OPS, 'data/applications.md'))
   ? join(CAREER_OPS, 'data/applications.md')
@@ -29,15 +31,22 @@ const STATES_FILE = existsSync(join(CAREER_OPS, 'templates/states.yml'))
   : join(CAREER_OPS, 'states.yml');
 
 const CANONICAL_STATUSES = [
+  // English (from states.yml)
+  'evaluated', 'applied', 'responded', 'interview',
+  'offer', 'rejected', 'discarded', 'skip',
+  // Spanish (legacy aliases)
   'evaluada', 'aplicado', 'respondido', 'entrevista',
   'oferta', 'rechazado', 'descartado', 'no aplicar',
 ];
 
 const ALIASES = {
-  'enviada': 'aplicado', 'aplicada': 'aplicado', 'applied': 'aplicado', 'sent': 'aplicado',
+  // English aliases
+  'sent': 'applied',
+  'no_aplicar': 'skip', 'monitor': 'skip',
+  // Spanish aliases
+  'enviada': 'aplicado', 'aplicada': 'aplicado',
   'cerrada': 'descartado', 'descartada': 'descartado', 'cancelada': 'descartado',
   'rechazada': 'rechazado',
-  'no_aplicar': 'no aplicar', 'skip': 'no aplicar', 'monitor': 'no aplicar',
 };
 
 let errors = 0;
@@ -143,7 +152,7 @@ if (badScores === 0) ok('All scores valid');
 let badRows = 0;
 for (const line of lines) {
   if (!line.startsWith('|')) continue;
-  if (line.includes('---') || line.includes('Empresa')) continue;
+  if (line.includes('---') || line.includes('Empresa') || line.includes('Company')) continue;
   const parts = line.split('|');
   if (parts.length < 9) {
     error(`Row with <9 columns: ${line.substring(0, 80)}...`);

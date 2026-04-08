@@ -17,7 +17,9 @@
 import { readFileSync, writeFileSync, readdirSync, mkdirSync, renameSync, existsSync } from 'fs';
 import { join, basename } from 'path';
 
-const CAREER_OPS = new URL('.', import.meta.url).pathname;
+// Support --cwd=<path> for running against a different directory (e.g., tests)
+const cwdFlag = process.argv.find(a => a.startsWith('--cwd='));
+const CAREER_OPS = cwdFlag ? cwdFlag.split('=')[1] : new URL('.', import.meta.url).pathname;
 // Support both layouts: data/applications.md (boilerplate) and applications.md (original)
 const APPS_FILE = existsSync(join(CAREER_OPS, 'data/applications.md'))
   ? join(CAREER_OPS, 'data/applications.md')
@@ -28,7 +30,12 @@ const DRY_RUN = process.argv.includes('--dry-run');
 const VERIFY = process.argv.includes('--verify');
 
 // Canonical states and aliases
-const CANONICAL_STATES = ['Evaluada', 'Aplicado', 'Respondido', 'Entrevista', 'Oferta', 'Rechazado', 'Descartado', 'NO APLICAR'];
+const CANONICAL_STATES = [
+  // English (from states.yml)
+  'Evaluated', 'Applied', 'Responded', 'Interview', 'Offer', 'Rejected', 'Discarded', 'SKIP',
+  // Spanish (legacy)
+  'Evaluada', 'Aplicado', 'Respondido', 'Entrevista', 'Oferta', 'Rechazado', 'Descartado', 'NO APLICAR',
+];
 
 function validateStatus(status) {
   const clean = status.replace(/\*\*/g, '').replace(/\s+\d{4}-\d{2}-\d{2}.*$/, '').trim();
@@ -43,9 +50,9 @@ function validateStatus(status) {
     'enviada': 'Aplicado', 'aplicada': 'Aplicado', 'applied': 'Aplicado', 'sent': 'Aplicado',
     'cerrada': 'Descartado', 'descartada': 'Descartado', 'cancelada': 'Descartado',
     'rechazada': 'Rechazado',
-    'no aplicar': 'NO APLICAR', 'no_aplicar': 'NO APLICAR', 'skip': 'NO APLICAR', 'monitor': 'NO APLICAR',
-    'condicional': 'Evaluada', 'hold': 'Evaluada', 'evaluar': 'Evaluada', 'verificar': 'Evaluada',
-    'geo blocker': 'NO APLICAR',
+    'no aplicar': 'SKIP', 'no_aplicar': 'SKIP', 'skip': 'SKIP', 'monitor': 'SKIP',
+    'condicional': 'Evaluated', 'hold': 'Evaluated', 'evaluar': 'Evaluated', 'verificar': 'Evaluated',
+    'geo blocker': 'SKIP',
   };
 
   if (aliases[lower]) return aliases[lower];
@@ -62,6 +69,9 @@ function normalizeCompany(name) {
 }
 
 function roleFuzzyMatch(a, b) {
+  // Exact match (case-insensitive)
+  if (a.toLowerCase().trim() === b.toLowerCase().trim()) return true;
+  // Fuzzy: 2+ significant words overlap
   const wordsA = a.toLowerCase().split(/\s+/).filter(w => w.length > 3);
   const wordsB = b.toLowerCase().split(/\s+/).filter(w => w.length > 3);
   const overlap = wordsA.filter(w => wordsB.some(wb => wb.includes(w) || w.includes(wb)));
